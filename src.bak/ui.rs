@@ -1,17 +1,4 @@
-//! Terminal UI rendering.
-
-use ratatui::{
-    layout::{Constraint, Direction, Layout, Margin},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph},
-    Frame,
-};
-
-use crate::{
-    protocol::is_terminal_response,
-    types::{App, ConnectionStatus, ReadState},
-};
+use crate::prelude::*;
 
 pub fn ui(frame: &mut Frame, app: &App) {
     let area = frame.size();
@@ -25,12 +12,6 @@ pub fn ui(frame: &mut Frame, app: &App) {
         ])
         .split(area);
 
-    render_header(frame, app, chunks[0]);
-    render_output(frame, app, chunks[1]);
-    render_input(frame, app, chunks[2]);
-}
-
-fn render_header(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let (status_text, status_color) = match &app.status {
         ConnectionStatus::Connected => ("● CONNECTED", Color::Green),
         ConnectionStatus::Disconnected => ("○ DISCONNECTED", Color::Yellow),
@@ -58,11 +39,15 @@ fn render_header(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let header = Paragraph::new(Line::from(vec![
         Span::styled(
             format!(" {} @ {}baud  ", app.port_path, app.baud_rate),
-            Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             status_text,
-            Style::default().fg(status_color).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(status_color)
+                .add_modifier(Modifier::BOLD),
         ),
         scroll_span,
         pending_span,
@@ -78,22 +63,37 @@ fn render_header(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
             .border_type(BorderType::Rounded)
             .title(Span::styled(
                 " AT Terminal ",
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             )),
     );
+    frame.render_widget(header, chunks[0]);
 
-    frame.render_widget(header, area);
-}
-
-fn render_output(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
-    let output_height = area
-        .inner(&Margin { horizontal: 1, vertical: 1 })
+    let output_height = chunks[1]
+        .inner(&Margin {
+            horizontal: 1,
+            vertical: 1,
+        })
         .height as usize;
 
     let items: Vec<ListItem> = app
         .output
         .iter()
-        .map(|line| ListItem::new(Line::from(Span::styled(line.clone(), line_style(line)))))
+        .map(|line| {
+            let style = if line.starts_with("▶ ") {
+                Style::default().fg(Color::Yellow)
+            } else if line.starts_with("✖") || line.to_ascii_uppercase().starts_with("ERROR") {
+                Style::default().fg(Color::Red)
+            } else if line == "OK" || line.starts_with("✔") {
+                Style::default().fg(Color::Green)
+            } else if is_terminal_response(line) {
+                Style::default().fg(Color::Green)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            ListItem::new(Line::from(Span::styled(line.clone(), style)))
+        })
         .collect();
 
     let total = items.len();
@@ -102,7 +102,7 @@ fn render_output(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let start = end.saturating_sub(visible);
     let visible_items: Vec<ListItem> = items.into_iter().skip(start).take(visible).collect();
 
-    let list = List::new(visible_items).block(
+    let output_list = List::new(visible_items).block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::DarkGray))
@@ -112,44 +112,31 @@ fn render_output(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
                 Style::default().fg(Color::DarkGray),
             )),
     );
+    frame.render_widget(output_list, chunks[1]);
 
-    frame.render_widget(list, area);
-}
-
-fn render_input(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
-    let border_color = if matches!(app.read_state, ReadState::WaitingReply) {
+    let input_border_color = if matches!(app.read_state, ReadState::WaitingReply) {
         Color::Magenta
     } else {
         Color::Green
     };
 
-    let widget = Paragraph::new(app.input.as_str())
+    let input_widget = Paragraph::new(app.input.as_str())
         .style(Style::default().fg(Color::White))
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(border_color))
+                .border_style(Style::default().fg(input_border_color))
                 .border_type(BorderType::Rounded)
                 .title(Span::styled(
                     " Command (Enter → send \\n\\r) ",
                     Style::default().fg(Color::Cyan),
                 )),
         );
+    frame.render_widget(input_widget, chunks[2]);
 
-    frame.render_widget(widget, area);
-
-    let inner = area.inner(&Margin { horizontal: 1, vertical: 1 });
-    frame.set_cursor(inner.x + app.cursor_pos as u16, inner.y);
-}
-
-fn line_style(line: &str) -> Style {
-    if line.starts_with("▶ ") {
-        Style::default().fg(Color::Yellow)
-    } else if line.starts_with("✖") || line.to_ascii_uppercase().starts_with("ERROR") {
-        Style::default().fg(Color::Red)
-    } else if line == "OK" || line.starts_with("✔") || is_terminal_response(line) {
-        Style::default().fg(Color::Green)
-    } else {
-        Style::default().fg(Color::White)
-    }
+    let input_inner = chunks[2].inner(&Margin {
+        horizontal: 1,
+        vertical: 1,
+    });
+    frame.set_cursor(input_inner.x + app.cursor_pos as u16, input_inner.y);
 }

@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::constants::{COMMAND_PREFIX, MAX_OUTPUT_LINES};
-use crate::types::{ConnectionStatus, ReadState};
+use crate::types::*;
 
 pub struct App {
     pub output: Vec<String>,
@@ -127,6 +126,14 @@ impl App {
     pub fn delete_char_after(&mut self) {
         if self.cursor_pos < self.input.len() {
             self.input.remove(self.cursor_pos);
+        }
+    }
+
+    pub fn parse_internal(cmd: &str) -> (&str, Option<&str>) {
+        let body = cmd.trim_start_matches(COMMAND_PREFIX).trim();
+        match body.split_once(char::is_whitespace) {
+            Some((verb, arg)) => (verb, Some(arg.trim())),
+            None => (body, None),
         }
     }
 }
