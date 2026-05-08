@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::constants::{COMMAND_PREFIX, MAX_OUTPUT_LINES};
-use crate::types::{ConnectionStatus, ReadState};
+use crate::types::{ConnectionStatus, PendingItem, ReadState};
 
 pub struct App {
     pub output: Vec<String>,
@@ -15,7 +15,7 @@ pub struct App {
     pub baud_rate: u32,
     pub scroll_offset: usize,
     pub auto_scroll: bool,
-    pub pending: VecDeque<String>,
+    pub pending: VecDeque<PendingItem>,
     pub read_state: ReadState,
     pub read_deadline: std::time::Instant,
 }

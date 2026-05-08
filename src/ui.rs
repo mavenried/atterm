@@ -117,7 +117,7 @@ fn render_output(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
 }
 
 fn render_input(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
-    let border_color = if matches!(app.read_state, ReadState::WaitingReply) {
+    let border_color = if matches!(app.read_state, ReadState::WaitingReply | ReadState::Delaying) {
         Color::Magenta
     } else {
         Color::Green

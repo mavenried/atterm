@@ -1,3 +1,4 @@
+use std::time::Duration;
 
 mod app;
 pub use app::*;
@@ -9,7 +10,13 @@ pub enum ConnectionStatus {
     Error(String),
 }
 
+pub enum PendingItem {
+    Command(String),
+    Delay(Duration),
+}
+
 pub enum ReadState {
     Idle,
     WaitingReply,
+    Delaying,
 }

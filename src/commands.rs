@@ -1,9 +1,13 @@
 //! Internal terminal commands (`:exit`, `:read`, `:save`, `:clear`).
 
-use serialport::SerialPort;
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, time::Duration};
 
-use crate::{constants::COMMAND_PREFIX, types::App};
+use serialport::SerialPort;
+
+use crate::{
+    constants::COMMAND_PREFIX,
+    types::{App, PendingItem},
+};
 
 /// Dispatch a parsed internal command. Returns true if the app should exit.
 pub fn dispatch(
@@ -28,7 +32,7 @@ pub fn dispatch(
         (unknown, _) => app.push_output(format!("✖ unknown command: :{}", unknown)),
     }
 
-    let _ = write_port; // reserved for future commands that need port access
+    let _ = write_port;
     false
 }
 
@@ -51,14 +55,24 @@ fn cmd_read(app: &mut App, path: &str) {
     match std::fs::read_to_string(&path) {
         Err(e) => app.push_output(format!("✖ read: {e}")),
         Ok(contents) => {
-            let cmds: Vec<String> = contents
+            let items: Vec<PendingItem> = contents
                 .lines()
                 .map(|l| l.trim().to_owned())
                 .filter(|l| !l.is_empty() && !l.starts_with('#'))
+                .map(|l| {
+                    if let Some(ms) = l
+                        .strip_prefix(":delay ")
+                        .and_then(|s| s.trim().parse::<u64>().ok())
+                    {
+                        PendingItem::Delay(Duration::from_millis(ms))
+                    } else {
+                        PendingItem::Command(l)
+                    }
+                })
                 .collect();
-            app.push_output(format!("✔ queuing {} commands from {}", cmds.len(), path));
-            for c in cmds {
-                app.pending.push_back(c);
+            app.push_output(format!("✔ queuing {} items from {}", items.len(), path));
+            for item in items {
+                app.pending.push_back(item);
             }
         }
     }

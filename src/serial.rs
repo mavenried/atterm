@@ -12,8 +12,8 @@ use serialport::SerialPort;
 
 use crate::{
     constants::{READ_TIMEOUT_MS, REPLY_TIMEOUT_MS},
-    protocol::is_terminal_response,
-    types::{App, ConnectionStatus, ReadState},
+    protocol::{frame_command, is_terminal_response},
+    types::{App, ConnectionStatus, PendingItem, ReadState},
 };
 
 /// Open the serial port, spawn the reader thread, return the write handle.
@@ -71,8 +71,7 @@ pub fn spawn_reader(
                 }
                 Err(e) if e.kind() == io::ErrorKind::TimedOut => {}
                 Err(e) => {
-                    *status.lock().unwrap() =
-                        ConnectionStatus::Error(format!("read error: {e}"));
+                    *status.lock().unwrap() = ConnectionStatus::Error(format!("read error: {e}"));
                     break;
                 }
             }
@@ -94,32 +93,45 @@ pub fn drain_rx(app: &mut App, rx_buf: &Arc<Mutex<Vec<String>>>) {
         if new_lines.iter().any(|l| is_terminal_response(l)) {
             app.read_state = ReadState::Idle;
         } else if app.output.len() > prev_len {
-            // data arrived but not a terminal response — reset the idle timer
             app.read_deadline = Instant::now() + Duration::from_millis(REPLY_TIMEOUT_MS);
         }
     }
 }
 
-/// Advance the pending-command queue, sending the next command when the modem is ready.
+/// Advance the pending-command queue, sending the next command when the device is ready.
 pub fn tick_pending(app: &mut App, write_port: &Option<Arc<Mutex<Box<dyn SerialPort>>>>) {
     match app.read_state {
         ReadState::Idle => {
-            if let Some(cmd) = app.pending.pop_front() {
-                if let Some(ref port_lock) = write_port {
-                    app.push_output(format!("▶ {}", cmd));
-                    let mut port = port_lock.lock().unwrap();
-                    let payload = crate::protocol::frame_command(&cmd);
-                    if let Err(e) = port.write_all(payload.as_bytes()) {
-                        app.push_output(format!("✖ write error: {e}"));
-                        app.pending.clear();
-                    } else {
-                        let _ = port.flush();
-                        app.history.push(cmd);
-                        app.read_state = ReadState::WaitingReply;
-                        app.read_deadline =
-                            Instant::now() + Duration::from_millis(REPLY_TIMEOUT_MS);
+            if let Some(item) = app.pending.pop_front() {
+                match item {
+                    PendingItem::Delay(dur) => {
+                        app.push_output(format!("⧗ delay {}ms", dur.as_millis()));
+                        app.read_state = ReadState::Delaying;
+                        app.read_deadline = Instant::now() + dur;
+                    }
+                    PendingItem::Command(cmd) => {
+                        if let Some(ref port_lock) = write_port {
+                            app.push_output(format!("▶ {}", cmd));
+                            let mut port = port_lock.lock().unwrap();
+                            let payload = frame_command(&cmd);
+                            if let Err(e) = port.write_all(payload.as_bytes()) {
+                                app.push_output(format!("✖ write error: {e}"));
+                                app.pending.clear();
+                            } else {
+                                let _ = port.flush();
+                                app.history.push(cmd);
+                                app.read_state = ReadState::WaitingReply;
+                                app.read_deadline =
+                                    Instant::now() + Duration::from_millis(REPLY_TIMEOUT_MS);
+                            }
+                        }
                     }
                 }
+            }
+        }
+        ReadState::Delaying => {
+            if Instant::now() >= app.read_deadline {
+                app.read_state = ReadState::Idle;
             }
         }
         ReadState::WaitingReply => {
@@ -139,7 +151,7 @@ pub fn send_command(
 ) {
     if let Some(ref port_lock) = write_port {
         let mut port = port_lock.lock().unwrap();
-        let payload = crate::protocol::frame_command(cmd);
+        let payload = frame_command(cmd);
         if let Err(e) = port.write_all(payload.as_bytes()) {
             app.push_output(format!("✖ write error: {e}"));
         } else {
