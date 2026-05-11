@@ -7,9 +7,9 @@ A terminal UI for interacting with AT command IoT devices over serial. Built wit
 │ /dev/ttyUSB0 @ 115200baud  ● CONNECTED  AUTO-SCROLL  [^C] quit  [↑↓] history │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Output (12 lines) ──────────────────────────────────────────────────────────╮
-│ ▶ AT                                                                         │
+│ ▶ AT                                                                        │
 │ OK                                                                           │
-│ ▶ AT+GMR                                                                     │
+│ ▶ AT+GMR                                                                    │
 │ AT version:2.4.0.0                                                           │
 │ SDK version:v4.3.2                                                           │
 │ OK                                                                           │
