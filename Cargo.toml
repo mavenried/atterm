@@ -2,12 +2,14 @@
 name = "atterm"
 version = "0.1.0"
 edition = "2021"
+description = "UART Terminal to interact with iot devices using AT commands"
+repository = "https://github.com/mavenried/atterm"
+authors = ["Joseph Chacko <josephchacko2006@gmail.com>"]
+license = "MIT OR Apache-2.0"
+keywords = ["uart", "terminal"]
 
 [dependencies]
 ratatui = "0.26"
 crossterm = "0.27"
 serialport = "4.6"
 anyhow = "1.0"
-
-[target.x86_64-pc-windows-gnu]
-linker = "x86_64-w64-mingw32-gcc"

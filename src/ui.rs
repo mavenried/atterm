@@ -58,11 +58,15 @@ fn render_header(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let header = Paragraph::new(Line::from(vec![
         Span::styled(
             format!(" {} @ {}baud  ", app.port_path, app.baud_rate),
-            Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             status_text,
-            Style::default().fg(status_color).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(status_color)
+                .add_modifier(Modifier::BOLD),
         ),
         scroll_span,
         pending_span,
@@ -77,8 +81,10 @@ fn render_header(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
             .border_style(Style::default().fg(Color::Blue))
             .border_type(BorderType::Rounded)
             .title(Span::styled(
-                " AT Terminal ",
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                " atterm ",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             )),
     );
 
@@ -87,7 +93,10 @@ fn render_header(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
 
 fn render_output(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let output_height = area
-        .inner(&Margin { horizontal: 1, vertical: 1 })
+        .inner(&Margin {
+            horizontal: 1,
+            vertical: 1,
+        })
         .height as usize;
 
     let items: Vec<ListItem> = app
@@ -117,7 +126,10 @@ fn render_output(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
 }
 
 fn render_input(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
-    let border_color = if matches!(app.read_state, ReadState::WaitingReply | ReadState::Delaying) {
+    let border_color = if matches!(
+        app.read_state,
+        ReadState::WaitingReply | ReadState::Delaying
+    ) {
         Color::Magenta
     } else {
         Color::Green
@@ -138,7 +150,10 @@ fn render_input(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
 
     frame.render_widget(widget, area);
 
-    let inner = area.inner(&Margin { horizontal: 1, vertical: 1 });
+    let inner = area.inner(&Margin {
+        horizontal: 1,
+        vertical: 1,
+    });
     frame.set_cursor(inner.x + app.cursor_pos as u16, inner.y);
 }
 

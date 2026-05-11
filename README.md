@@ -7,9 +7,9 @@ A terminal UI for interacting with AT command IoT devices over serial. Built wit
 │ /dev/ttyUSB0 @ 115200baud  ● CONNECTED  AUTO-SCROLL  [^C] quit  [↑↓] history │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Output (12 lines) ──────────────────────────────────────────────────────────╮
-│ ▶ AT                                                                        │
+│ ▶ AT                                                                         │
 │ OK                                                                           │
-│ ▶ AT+GMR                                                                    │
+│ ▶ AT+GMR                                                                     │
 │ AT version:2.4.0.0                                                           │
 │ SDK version:v4.3.2                                                           │
 │ OK                                                                           │
@@ -45,10 +45,9 @@ cargo build --release
 
 ```bash
 # Default: /dev/ttyUSB0 at 115200 baud
-./at-terminal
-
+atterm
 # Custom port and baud rate
-./at-terminal /dev/ttyUSB1 9600
+atterm /dev/ttyUSB1 9600
 ```
 
 If your user can't open the serial port:
@@ -60,18 +59,18 @@ sudo usermod -aG dialout $USER
 
 ## Keybindings
 
-| Key | Action |
-|-----|--------|
-| `Enter` | Send command |
-| `↑` / `↓` | Browse command history |
-| `←` / `→` | Move cursor |
-| `Home` / `End` | Jump to start/end of input |
-| `Backspace` / `Del` | Delete character |
-| `^U` | Clear input line |
-| `^W` | Delete word before cursor |
-| `PgUp` / `PgDn` | Scroll output (10 lines) |
-| Scroll wheel | Scroll output (3 lines) |
-| `^C` | Quit |
+| Key                 | Action                     |
+| ------------------- | -------------------------- |
+| `Enter`             | Send command               |
+| `↑` / `↓`           | Browse command history     |
+| `←` / `→`           | Move cursor                |
+| `Home` / `End`      | Jump to start/end of input |
+| `Backspace` / `Del` | Delete character           |
+| `^U`                | Clear input line           |
+| `^W`                | Delete word before cursor  |
+| `PgUp` / `PgDn`     | Scroll output (10 lines)   |
+| Scroll wheel        | Scroll output (3 lines)    |
+| `^C`                | Quit                       |
 
 Scrolling up disables auto-scroll. It re-enables when you reach the bottom.
 
@@ -80,9 +79,11 @@ Scrolling up disables auto-scroll. It re-enables when you reach the bottom.
 Internal commands start with `:` and control the terminal itself rather than the device.
 
 ### `:exit`
+
 Quit the terminal.
 
 ### `:read <file>`
+
 Load a `.at` script and execute each command in sequence, waiting for a terminal response (`OK`, `ERROR`, `NO CARRIER`, etc.) before sending the next one. If no extension is given, `.at` is appended automatically.
 
 ```bash
@@ -93,6 +94,7 @@ Load a `.at` script and execute each command in sequence, waiting for a terminal
 A 5 second inactivity timeout aborts the queue if the device stops responding. The timer resets on each received line, so commands that stream a lot of output won't be cut off prematurely.
 
 ### `:save <file>`
+
 Save all AT commands from the current session history to a file. Internal commands (`:read`, `:save`, etc.) are excluded, so the output is a valid script that can be replayed with `:read`.
 
 ```bash
@@ -100,6 +102,7 @@ Save all AT commands from the current session history to a file. Internal comman
 ```
 
 ### `:clear`
+
 Clear the output pane.
 
 ## Script Format (`.at` files)
@@ -128,12 +131,12 @@ AT+CWMODE=1
 
 ## Output Colors
 
-| Color | Meaning |
-|-------|---------|
-| Yellow | Command sent (`▶ AT+GMR`) |
-| Green | Terminal response (`OK`, `NO CARRIER`, `+CME ERROR`, etc.) |
-| Red | Error (`✖ write error`, `ERROR` responses) |
-| White | Normal device output |
+| Color  | Meaning                                                    |
+| ------ | ---------------------------------------------------------- |
+| Yellow | Command sent (`▶ AT+GMR`)                                  |
+| Green  | Terminal response (`OK`, `NO CARRIER`, `+CME ERROR`, etc.) |
+| Red    | Error (`✖ write error`, `ERROR` responses)                 |
+| White  | Normal device output                                       |
 
 ## Project Structure
 
